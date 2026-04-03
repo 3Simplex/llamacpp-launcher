@@ -10,10 +10,10 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-    in {
-      packages.${system}.default = pkgs.writeShellApplication {
+      
+      launcher = pkgs.writeShellApplication {
         name = "llama-launcher";
-        runtimeInputs = [ 
+        runtimeInputs =[ 
           pkgs.jq 
           pkgs.curl 
           pkgs.procps 
@@ -25,6 +25,18 @@
           llamacpp-flake.packages.${system}.default
         ];
         text = builtins.readFile ./launcher.sh;
+      };
+
+      upgrade = pkgs.writeShellApplication {
+        name = "llamacpp-upgrade";
+        runtimeInputs = [ pkgs.git pkgs.nix ];
+        text = builtins.readFile ./upgrade.sh;
+      };
+
+    in {
+      packages.${system}.default = pkgs.symlinkJoin {
+        name = "llamacpp-toolkit";
+        paths = [ launcher upgrade ];
       };
     };
 }
