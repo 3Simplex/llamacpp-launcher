@@ -12,7 +12,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
       
       launcher = pkgs.writeShellApplication {
-        name = "llama-launcher";
+        name = "llamacpp-launcher";
         runtimeInputs =[ 
           pkgs.jq 
           pkgs.curl 
