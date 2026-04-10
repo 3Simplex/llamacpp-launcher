@@ -32,7 +32,7 @@ get_physical_cores() {
 }
 
 # Ensure base JSON structure exists
-if[ ! -f "$CONFIG_FILE" ]; then
+if [ ! -f "$CONFIG_FILE" ]; then
     echo '{"global_settings": {"model_directories":[]}, "nixos_global": {"models": {}}, "launch_presets": {}}' > "$CONFIG_FILE"
 else
     # Inject missing keys safely into old config files
@@ -110,7 +110,7 @@ manage_and_select_model_dirs() {
                         if [[ "$action" =~ ^[Yy]$ ]]; then selected_for_add+=("$dir"); fi
                     done
 
-                    if[ ${#selected_for_add[@]} -gt 0 ]; then
+                    if [ ${#selected_for_add[@]} -gt 0 ]; then
                         jq --argjson paths "$(printf '%s\n' "${selected_for_add[@]}" | jq -R . | jq -s .)" '.global_settings.model_directories |= (. + $paths | unique)' "$CONFIG_FILE" > t && mv t "$CONFIG_FILE"
                         success "Directories saved."
                     fi
@@ -181,7 +181,7 @@ select_model_from_dirs() {
         [ ! -d "$dir" ] && continue
         echo; info "Searching in: ${C_CYAN}$dir${C_RESET}"
         mapfile -t models_in_dir < <(find "$dir" -maxdepth 2 -type f -name "*.gguf" ! -name "*mmproj*" ! -name "*.etag" | sort)
-        if[ ${#models_in_dir[@]} -gt 0 ]; then
+        if [ ${#models_in_dir[@]} -gt 0 ]; then
             for model_path in "${models_in_dir[@]}"; do
                 echo -e "${C_BLUE}$counter)${C_RESET} $(basename "$model_path")"
                 all_model_paths+=("$model_path"); ((counter++))
@@ -224,7 +224,7 @@ find_or_select_mmproj() {
         read -p "Is this a multimodal model (e.g., LLaVA, Gemma4-Vision)? (y/N) " choice
         if [[ "$choice" =~ ^[Yy]$ ]]; then
             mapfile -t all_p < <(find "$model_dir" -maxdepth 1 -type f -name "*mmproj*.gguf")
-            if[ ${#all_p[@]} -eq 0 ]; then warn "No 'mmproj' files found in directory."; return; fi
+            if [ ${#all_p[@]} -eq 0 ]; then warn "No 'mmproj' files found in directory."; return; fi
             warn "Select manually:"
             PS3="Select projector: "; select p in "${all_p[@]}" "None"; do
                 if [[ "$p" == "None" ]]; then break; fi
@@ -411,7 +411,7 @@ configure_and_launch() {
     if [[ -z "$SELECTED_MMPROJ_PATH" ]]; then find_or_select_mmproj; fi
 
     # Conditional Hardware Discovery (Restored behavior)
-    if[ -z "$USABLE_CONTEXT" ]; then
+    if [ -z "$USABLE_CONTEXT" ]; then
         hardware_discovery
     else
         success "Found saved config: Context=${C_GREEN}$USABLE_CONTEXT${C_RESET}, NGL=$SAVED_NGL, Threads=$SAVED_THREADS"
