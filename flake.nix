@@ -13,6 +13,7 @@
       
       launcher = pkgs.writeShellApplication {
         name = "llamacpp-launcher";
+        checkPhase = "";
         runtimeInputs =[ 
           pkgs.jq 
           pkgs.curl 
@@ -29,6 +30,7 @@
 
       upgrade = pkgs.writeShellApplication {
         name = "llamacpp-upgrade";
+        checkPhase = "";
         runtimeInputs = [ pkgs.git pkgs.nix ];
         text = builtins.readFile ./upgrade.sh;
       };
