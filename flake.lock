@@ -43,8 +43,8 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1776011039,
-        "narHash": "sha256-LWk7Zl+3/48x/o1y1tbd183Auztktfj9W1QrmZR0osk=",
+        "lastModified": 1776011246,
+        "narHash": "sha256-qI+qR5y9lFVg1JQ5h2FRdjmwkZfsOR8Lrx2ln3WDaRw=",
         "path": "/home/claytonw/src/flakes/llamacpp-flake",
         "type": "path"
       },
