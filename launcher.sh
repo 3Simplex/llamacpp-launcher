@@ -15,8 +15,13 @@ C_RESET='\033[0m'; C_RED='\033[0;31m'; C_GREEN='\033[0;32m'; C_YELLOW='\033[0;33
 
 # --- Global Vars ---
 SELECTED_MMPROJ_PATH=""
-SERVER_BINARY="llama-server"
-CLI_BINARY="llama-cli"
+SERVER_BINARY="$HOME/src/flakes/llamacpp-flake/store/global-active/bin/llama-server"
+CLI_BINARY="$HOME/src/flakes/llamacpp-flake/store/global-active/bin/llama-cli"
+STORE_DIR="$HOME/src/flakes/llamacpp-flake/store"
+INVENTORY="$STORE_DIR/inventory.json"
+GLOBAL_LINK="$STORE_DIR/global-active"
+SERVER_BINARY="$GLOBAL_LINK/bin/llama-server"
+CLI_BINARY="$GLOBAL_LINK/bin/llama-cli"
 declare -A RUNNING_INSTANCES
 
 # --- Helper Functions ---
@@ -26,6 +31,28 @@ error() { echo -e "${C_RED}ERROR:${C_RESET} $1" >&2; exit 1; }
 success() { echo -e "${C_GREEN}SUCCESS:${C_RESET} $1"; }
 debug() { if [ "$DEBUG" = true ]; then echo -e "${C_CYAN}DEBUG:${C_RESET} $1" >&2; fi; }
 command_exists() { command -v "$1" &> /dev/null; }
+
+resolve_binaries() {
+    local pinned; pinned=$(jq -r \
+        --arg cfg "$SELECTED_CFG_NAME" \
+        --arg key "$SELECTED_MODEL_PATH" \
+        '.[$cfg].models[$key].pinned_build // empty' "$CONFIG_FILE")
+
+    if [[ -n "$pinned" ]]; then
+        local pinned_path="${STORE_DIR}/${pinned}"
+        if [ -e "$pinned_path" ]; then
+            SERVER_BINARY="${pinned_path}/bin/llama-server"
+            CLI_BINARY="${pinned_path}/bin/llama-cli"
+            info "Using pinned build: ${C_GREEN}$pinned${C_RESET}"
+        else
+            warn "Pinned build '${pinned}' not found in store. Falling back to global-active."
+        fi
+    else
+        SERVER_BINARY="$GLOBAL_LINK/bin/llama-server"
+        CLI_BINARY="$GLOBAL_LINK/bin/llama-cli"
+        info "Using global active build: ${C_GREEN}$(basename "$(readlink "$GLOBAL_LINK")")${C_RESET}"
+    fi
+}
 
 get_physical_cores() {
     if command_exists lscpu; then lscpu -b -p=Core,Socket | grep -v '^#' | sort -u | wc -l; else echo 4; fi
@@ -337,6 +364,53 @@ execute_terminal() {
 # --- Launch Server ---
 launch_server() {
     info "--- Prepare to Launch Server ---"
+
+    # Build pin selection
+    local current_pin; current_pin=$(jq -r \
+        --arg cfg "$SELECTED_CFG_NAME" \
+        --arg key "$SELECTED_MODEL_PATH" \
+        '.[$cfg].models[$key].pinned_build // empty' "$CONFIG_FILE")
+
+    echo
+    if [[ -n "$current_pin" ]]; then
+        info "This model is pinned to build: ${C_GREEN}$current_pin${C_RESET}"
+    else
+        info "This model uses the global active build."
+    fi
+
+    local build_options=("Use global active (no pin)")
+    if [ -f "$INVENTORY" ]; then
+        mapfile -t built_names < <(
+            jq -r 'to_entries[] | select(.value.built == true) | .key' "$INVENTORY" 2>/dev/null || true
+        )
+        for b in "${built_names[@]}"; do build_options+=("Pin to: $b"); done
+    fi
+    build_options+=("Keep current setting")
+
+    PS3="Select build to use for this model: "
+    COLUMNS=1
+    select choice in "${build_options[@]}"; do
+        case "$choice" in
+            "Use global active (no pin)")
+                jq --arg cfg "$SELECTED_CFG_NAME" --arg key "$SELECTED_MODEL_PATH" \
+                   'del(.[$cfg].models[$key].pinned_build)' \
+                   "$CONFIG_FILE" > t && mv t "$CONFIG_FILE"
+                resolve_binaries
+                break ;;
+            "Keep current setting")
+                resolve_binaries
+                break ;;
+            Pin\ to:\ *)
+                local pin_name="${choice#Pin to: }"
+                jq --arg cfg "$SELECTED_CFG_NAME" --arg key "$SELECTED_MODEL_PATH" --arg pin "$pin_name" \
+                   '.[$cfg].models[$key].pinned_build = $pin' \
+                   "$CONFIG_FILE" > t && mv t "$CONFIG_FILE"
+                resolve_binaries
+                break ;;
+            "") warn "Invalid selection." ;;
+        esac
+    done
+
     local model_alias; model_alias=$(basename "$SELECTED_MODEL_PATH" .gguf)
     read -p "Server Alias [--alias] [$model_alias]: " -e alias_name_input
     local alias_name=${alias_name_input:-$model_alias}
@@ -408,6 +482,7 @@ configure_and_launch() {
     [ -z "$SELECTED_MODEL_PATH" ] && return
 
     get_saved_config
+    resolve_binaries
     if [[ -z "$SELECTED_MMPROJ_PATH" ]]; then find_or_select_mmproj; fi
 
     # Conditional Hardware Discovery (Restored behavior)
