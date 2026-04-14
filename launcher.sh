@@ -437,7 +437,7 @@ launch_server() {
     local last_parallel; last_parallel=$(jq -r --arg cfg "$SELECTED_CFG_NAME" --arg key "$SELECTED_MODEL_PATH" '.[$cfg].models[$key].last_parallel // 1' "$CONFIG_FILE")
     read -p "Parallel slots (-np)[$last_parallel]: " parallel_slots; parallel_slots=${parallel_slots:-$last_parallel}
 
-    local cmd_args=("-m" "$SELECTED_MODEL_PATH" "-c" "$USABLE_CONTEXT" "--host" "0.0.0.0" "--port" "$port" "--alias" "$alias_name" "--props" "-ctk" "$cache_type" "-np" "$parallel_slots" -t "$threads" "-fa" "on")
+    local cmd_args=("-m" "$SELECTED_MODEL_PATH" "-c" "$USABLE_CONTEXT" "--host" "0.0.0.0" "--port" "$port" "--alias" "$alias_name" "--props" "--metrics" "-ctk" "$cache_type" "-np" "$parallel_slots" -t "$threads" "-fa" "on")
     [[ -n "$SELECTED_MMPROJ_PATH" ]] && cmd_args+=("--mmproj" "$SELECTED_MMPROJ_PATH")
 
     # GPU / Tensor Split
@@ -530,7 +530,7 @@ launch_from_preset() {
     local device=$(echo "$preset" | jq -r '.device'); local mmproj=$(echo "$preset" | jq -r '.mmproj_path')
     local tensor_split=$(echo "$preset" | jq -r '.tensor_split')
 
-    local cmd_args=("-m" "$model_path" "-c" "$context" "--host" "0.0.0.0" "--port" "$port" "--alias" "$alias_name" "--props" "-ctk" "$cache_type" "-np" "$parallel" -t "$threads" "-fa" "on")
+    local cmd_args=("-m" "$SELECTED_MODEL_PATH" "-c" "$USABLE_CONTEXT" "--host" "0.0.0.0" "--port" "$port" "--alias" "$alias_name" "--props" "--metrics" "-ctk" "$cache_type" "-np" "$parallel_slots" -t "$threads" "-fa" "on")
     [[ "$mmproj" != "null" && -n "$mmproj" ]] && cmd_args+=("--mmproj" "$mmproj")
     [[ "$tensor_split" != "null" && -n "$tensor_split" ]] && cmd_args+=("--tensor-split" "$tensor_split")
 
