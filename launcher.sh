@@ -412,8 +412,17 @@ launch_server() {
     done
 
     local model_alias; model_alias=$(basename "$SELECTED_MODEL_PATH" .gguf)
-    read -p "Server Alias [--alias] [$model_alias]: " -e alias_name_input
-    local alias_name=${alias_name_input:-$model_alias}
+    local active_build
+    if [[ -n "$current_pin" ]]; then
+        active_build="$current_pin"
+    elif [ -L "$GLOBAL_LINK" ]; then
+        active_build=$(basename "$(readlink "$GLOBAL_LINK")")
+    else
+        active_build="unknown"
+    fi
+    local default_alias="${model_alias}__${active_build}"
+    read -p "Server Alias [--alias] [$default_alias]: " -e alias_name_input
+    local alias_name=${alias_name_input:-$default_alias}
 
     local last_port; last_port=$(jq -r --arg cfg "$SELECTED_CFG_NAME" --arg key "$SELECTED_MODEL_PATH" '.[$cfg].models[$key].last_port // "8080"' "$CONFIG_FILE")
     read -p "Port to use [--port] [$last_port]: " port; port=${port:-$last_port}
