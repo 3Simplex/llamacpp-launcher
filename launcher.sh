@@ -510,7 +510,20 @@ launch_from_preset() {
     info "Launching preset: ${C_GREEN}$preset_name${C_RESET}"
     local preset; preset=$(jq -c --arg name "$preset_name" '.launch_presets[$name]' "$CONFIG_FILE")
 
-    local model_path=$(echo "$preset" | jq -r '.model_path'); local alias_name=$(echo "$preset" | jq -r '.alias')
+    local model_path=$(echo "$preset" | jq -r '.model_path')
+    local saved_alias=$(echo "$preset" | jq -r '.alias')
+    local base_alias="${saved_alias%%__*}"  # strip any previous build suffix
+
+    local preset_pin=$(echo "$preset" | jq -r '.pinned_build // empty')
+    local active_build
+    if [[ -n "$preset_pin" ]]; then
+        active_build="$preset_pin"
+    elif [ -L "$GLOBAL_LINK" ]; then
+        active_build=$(basename "$(readlink "$GLOBAL_LINK")")
+    else
+        active_build="unknown"
+    fi
+    local alias_name="${base_alias}__${active_build}"
     local port=$(echo "$preset" | jq -r '.port'); local cache_type=$(echo "$preset" | jq -r '.cache_type')
     local threads=$(echo "$preset" | jq -r '.threads'); local parallel=$(echo "$preset" | jq -r '.parallel_slots')
     local context=$(echo "$preset" | jq -r '.context'); local ngl=$(echo "$preset" | jq -r '.ngl')
