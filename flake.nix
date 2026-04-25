@@ -40,8 +40,18 @@
 
     in {
       packages.${system}.default = pkgs.symlinkJoin {
-        name = "llamacpp-toolkit";
+        name = "llamacpp-launcher";
         paths = [ launcher store ];
+      };
+
+      apps.${system}.default = {
+        type = "app";
+        program = "${self.packages.${system}.default}/bin/llamacpp-launcher";
+      };
+
+      apps.${system}.store = {
+        type = "app";
+        program = "${self.packages.${system}.default}/bin/llamacpp-store";
       };
     };
 }
