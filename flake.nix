@@ -5,8 +5,10 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs }:
-    let
+  outputs = { self, nixpkgs }: rec {
+    # Everything inside outputs must be an attribute.
+    # So we put the let-binding INSIDE an attribute.
+    packages = let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
@@ -37,21 +39,26 @@
         ];
         text = builtins.readFile ./store.sh;
       };
-
     in {
-      packages.${system}.default = pkgs.symlinkJoin {
+      ${system}.default = pkgs.symlinkJoin {
         name = "llamacpp-launcher";
         paths = [ launcher store ];
       };
+    };
 
-      apps.${system}.default = {
+    apps = let
+      system = "x86_64-linux";
+    in {
+      ${system}.default = {
         type = "app";
         program = "${self.packages.${system}.default}/bin/llamacpp-launcher";
       };
 
-      apps.${system}.store = {
+      ${system}.store = {
         type = "app";
         program = "${self.packages.${system}.default}/bin/llamacpp-store";
       };
     };
+  };
 }
+
