@@ -6,8 +6,6 @@
   };
 
   outputs = { self, nixpkgs }: rec {
-    # Everything inside outputs must be an attribute.
-    # So we put the let-binding INSIDE an attribute.
     packages = let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -40,23 +38,21 @@
         text = builtins.readFile ./store.sh;
       };
     in {
-      ${system}.default = pkgs.symlinkJoin {
+      x86_64-linux.default = pkgs.symlinkJoin {
         name = "llamacpp-launcher";
         paths = [ launcher store ];
       };
     };
 
-    apps = let
-      system = "x86_64-linux";
-    in {
-      ${system}.default = {
+    apps = {
+      x86_64-linux.default = {
         type = "app";
-        program = "${self.packages.${system}.default}/bin/llamacpp-launcher";
+        program = "${self.packages.x86_64-linux.default}/bin/llamacpp-launcher";
       };
 
-      ${system}.store = {
+      x86_64-linux.store = {
         type = "app";
-        program = "${self.packages.${system}.default}/bin/llamacpp-store";
+        program = "${self.packages.x86_64-linux.default}/bin/llamacpp-store";
       };
     };
   };
